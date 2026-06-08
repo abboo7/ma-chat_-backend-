@@ -9,6 +9,25 @@ datasource db {
   provider = "postgresql"
 }
 
+enum ConversationType {
+  DIRECT
+  GROUP
+}
+
+enum MemberRole {
+  ADMIN
+  MEMBER
+  OWNER
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  VIDEO
+  FILE
+  SYSTEM
+}
+
 model User {
   id            String    @id
   name          String
@@ -20,6 +39,8 @@ model User {
   sessions      Session[]
   accounts      Account[]
 
+  sentMessages Message[]            @relation("SentMessages")
+  memberships  ConversationMember[]
 
   @@unique([email])
   @@map("user")
@@ -72,3 +93,80 @@ model Verification {
   @@index([identifier])
   @@map("verification")
 }
+
+model Conversation {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  type ConversationType @default(DIRECT)
+
+  name  String?
+  image String?
+
+  directKey String? @unique
+
+  lastMessageAt DateTime?
+
+  members  ConversationMember[]
+  messages Message[]
+
+  @@index([lastMessageAt])
+  @@index([type])
+  @@map("conversation")
+}
+
+
+model ConversationMember {
+  id             String   @id @default(cuid())
+  conversationId String
+  userId         String
+
+  joinedAt DateTime @default(now())
+
+  role MemberRole @default(MEMBER)
+
+  lastReadAt DateTime?
+
+  leftAt   DateTime?
+  isActive Boolean   @default(true)
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, userId])
+  @@index([userId])
+  @@index([conversationId])
+  @@map("conversation_member")
+}
+
+
+
+model Message {
+  id             String   @id @default(cuid())
+  conversationId String
+  senderId       String?
+
+  content String?
+
+  type MessageType @default(TEXT)
+
+  replyToId String?
+  replyTo   Message? @relation("MessageReplies", fields: [replyToId], references: [id])
+
+  replies   Message[] @relation("MessageReplies")
+
+  deletedAt DateTime?
+  isDeleted Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       User?        @relation("SentMessages", fields: [senderId], references: [id], onDelete: SetNull)
+
+  @@index([conversationId, createdAt])
+  @@index([replyToId])
+  @@map("message")
+}
+
