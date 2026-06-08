@@ -2,8 +2,9 @@ import { toNodeHandler } from "better-auth/node";
 import cors from "cors";
 import express from "express";
 
-import { env } from "./config/env.js";
 import { auth } from "./config/auth.js";
+import { env } from "./config/env.js";
+import { v1Router } from "./routes/v1/index.js";
 
 const app = express();
 
@@ -18,11 +19,7 @@ app.use(
 
 app.all("/api/auth{/*path}", toNodeHandler(auth));
 
-app.use(express.json());
-
-app.get("/", (_req, res) => {
-  res.status(200).send("OK");
-});
+app.use("/api/v1", v1Router);
 
 app.listen(env.PORT, () => {
   console.log(`API running at ${env.BETTER_AUTH_URL}`);
