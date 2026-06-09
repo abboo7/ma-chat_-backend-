@@ -180,4 +180,95 @@ export const conversationService = {
 
     return { ...formatConversation(conversation), unreadCount };
   },
+
+  async update(
+    userId: string,
+    conversationId: string,
+    data: { name?: string; image?: string | null }
+  ) {
+    const conversation = await conversationRepository.findById(conversationId);
+    if (!conversation) {
+      throw new AppError(404, "Conversation not found");
+    }
+
+    if (conversation.type !== ConversationType.GROUP) {
+      throw new AppError(400, "Only group conversations can be updated");
+    }
+
+    await requireGroupRole(conversationId, userId, [
+      MemberRole.OWNER,
+      MemberRole.ADMIN,
+    ]);
+
+    const updated = await conversationRepository.updateConversation(
+      conversationId,
+      data
+    );
+
+    return formatConversation(updated);
+  },
+
+  async delete(userId: string, conversationId: string) {
+    const conversation = await conversationRepository.findById(conversationId);
+    if (!conversation) {
+      throw new AppError(404, "Conversation not found");
+    }
+
+    await requireActiveMember(conversationId, userId);
+
+    if (conversation.type === ConversationType.GROUP) {
+      await requireGroupRole(conversationId, userId, [MemberRole.OWNER]);
+    }
+
+    await conversationRepository.deleteConversation(conversationId);
+
+    return { success: true };
+  },
+
+  async markAsRead(userId: string, conversationId: string) {
+    await requireActiveMember(conversationId, userId);
+    await conversationRepository.markAsRead(conversationId, userId);
+    return { success: true };
+  },
+
+  async getUnreadCount(userId: string, conversationId: string) {
+    await requireActiveMember(conversationId, userId);
+    const count = await conversationRepository.countUnread(
+      conversationId,
+      userId
+    );
+    return { conversationId, unreadCount: count };
+  },
+
+  async getBatchUnreadCounts(userId: string) {
+    const counts = await conversationRepository.countUnreadForUser(userId);
+    return { counts };
+  },
+
+  async leave(userId: string, conversationId: string) {
+    const conversation = await conversationRepository.findById(conversationId);
+    if (!conversation) {
+      throw new AppError(404, "Conversation not found");
+    }
+
+    if (conversation.type !== ConversationType.GROUP) {
+      throw new AppError(
+        400,
+        "Cannot leave a direct conversation; delete it instead"
+      );
+    }
+
+    const member = await requireActiveMember(conversationId, userId);
+
+    if (member.role === MemberRole.OWNER) {
+      throw new AppError(
+        400,
+        "Owner cannot leave the group; transfer ownership or delete the group"
+      );
+    }
+
+    await conversationRepository.leaveConversation(conversationId, userId);
+
+    return { success: true };
+  },
 };

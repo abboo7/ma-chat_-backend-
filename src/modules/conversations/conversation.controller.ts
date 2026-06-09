@@ -55,7 +55,10 @@ export const createDirect: RequestHandler = async (req, res) => {
 export const createGroup: RequestHandler = async (req, res) => {
   try {
     const body = createGroupSchema.parse(req.body);
-    const conversation = await conversationService.createGroup(getUserId(req), body);
+    const conversation = await conversationService.createGroup(
+      getUserId(req),
+      body
+    );
     res.status(201).json(conversation);
   } catch (error) {
     handleError(error, res);
@@ -74,7 +77,9 @@ export const list: RequestHandler = async (req, res) => {
 
 export const getBatchUnreadCounts: RequestHandler = async (req, res) => {
   try {
-    const result = await conversationService.getBatchUnreadCounts(getUserId(req));
+    const result = await conversationService.getBatchUnreadCounts(
+      getUserId(req)
+    );
     res.json(result);
   } catch (error) {
     handleError(error, res);

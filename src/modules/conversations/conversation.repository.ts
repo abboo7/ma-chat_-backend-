@@ -168,4 +168,90 @@ export const conversationRepository = {
       take: options.limit,
     });
   },
+
+  updateConversation(
+    conversationId: string,
+    data: { name?: string; image?: string | null }
+  ) {
+    return prisma.conversation.update({
+      where: { id: conversationId },
+      data,
+      include: conversationInclude,
+    });
+  },
+
+  deleteConversation(conversationId: string) {
+    return prisma.conversation.delete({
+      where: { id: conversationId },
+    });
+  },
+
+  markAsRead(conversationId: string, userId: string) {
+    return prisma.conversationMember.update({
+      where: {
+        conversationId_userId: { conversationId, userId },
+      },
+      data: { lastReadAt: new Date() },
+    });
+  },
+
+  leaveConversation(conversationId: string, userId: string) {
+    return prisma.conversationMember.update({
+      where: {
+        conversationId_userId: { conversationId, userId },
+      },
+      data: {
+        isActive: false,
+        leftAt: new Date(),
+      },
+    });
+  },
+
+  async countUnread(conversationId: string, userId: string): Promise<number> {
+    const member = await prisma.conversationMember.findUnique({
+      where: {
+        conversationId_userId: { conversationId, userId },
+      },
+      select: { lastReadAt: true },
+    });
+
+    return prisma.message.count({
+      where: {
+        conversationId,
+        isDeleted: false,
+        senderId: { not: userId },
+        ...(member?.lastReadAt ? { createdAt: { gt: member.lastReadAt } } : {}),
+      },
+    });
+  },
+
+  async countUnreadForUser(userId: string): Promise<Record<string, number>> {
+    const memberships = await prisma.conversationMember.findMany({
+      where: { userId, isActive: true },
+      select: { conversationId: true, lastReadAt: true },
+    });
+
+    if (memberships.length === 0) {
+      return {};
+    }
+
+    const counts: Record<string, number> = {};
+
+    await Promise.all(
+      memberships.map(async (membership) => {
+        counts[membership.conversationId] = await prisma.message.count({
+          where: {
+            conversationId: membership.conversationId,
+            isDeleted: false,
+            senderId: { not: userId },
+            ...(membership.lastReadAt
+              ? { createdAt: { gt: membership.lastReadAt } }
+              : {}),
+          },
+        });
+      })
+    );
+
+    return counts;
+  },
 };
