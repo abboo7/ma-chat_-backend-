@@ -9,6 +9,8 @@ import {
 import { memberRouter } from "../../modules/members/member.route.js";
 
 const router = express.Router();
+const protectedRouter = express.Router();
+
 
 router.get("/health", (_req, res) => {
   res.status(200).send("OK");
@@ -16,7 +18,6 @@ router.get("/health", (_req, res) => {
 
 router.use(express.json());
 
-const protectedRouter = express.Router();
 
 protectedRouter.use(requireAuth);
 protectedRouter.use("/conversations", conversationRouter);

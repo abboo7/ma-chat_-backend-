@@ -4,7 +4,7 @@ import express from "express";
 
 import { auth } from "./config/auth.js";
 import { env } from "./config/env.js";
-import { v1Router } from "./routes/v1/index.js";
+import { v1Router } from "./api/v1/index.js";
 
 const app = express();
 

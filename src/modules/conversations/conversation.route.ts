@@ -1,20 +1,13 @@
-import express, { type RequestHandler, type Router } from "express";
+import express, { type Router } from "express";
+import { asyncHandler } from "../../lib/async-handler.js";
+import * as controller from "./conversation.controller.js";
 
 const router = express.Router();
 
-const todo: RequestHandler = (_req, res) => {
-  res.status(501).json({ error: "Not implemented" });
-};
-
-router.post("/direct", todo);
-router.post("/group", todo);
-router.get("/", todo);
-router.get("/unread-count", todo);
-router.get("/:conversationId", todo);
-router.patch("/:conversationId", todo);
-router.delete("/:conversationId", todo);
-router.post("/:conversationId/read", todo);
-router.get("/:conversationId/unread-count", todo);
-router.post("/:conversationId/leave", todo);
+router.post("/direct", asyncHandler(controller.createDirect));
+router.post("/group", asyncHandler(controller.createGroup));
+router.get("/", asyncHandler(controller.list));
+router.get("/unread-count", asyncHandler(controller.getBatchUnreadCounts));
+router.get("/:conversationId", asyncHandler(controller.getById));
 
 export const conversationRouter = router as Router;
