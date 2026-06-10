@@ -1,19 +1,11 @@
-import express, { type RequestHandler, type Router } from "express";
-
-const todo: RequestHandler = (_req, res) => {
-  res.status(501).json({ error: "Not implemented" });
-};
+import express, { type Router } from "express";
+import { asyncHandler } from "../../lib/async-handler.js";
+import * as controller from "./message.controller.js";
 
 const conversationMessageRouter = express.Router({ mergeParams: true });
 
-conversationMessageRouter.post("/", todo);
-conversationMessageRouter.get("/", todo);
+conversationMessageRouter.post("/", asyncHandler(controller.send));
+conversationMessageRouter.get("/", asyncHandler(controller.list));
 
-const messageByIdRouter = express.Router();
-
-messageByIdRouter.get("/:messageId", todo);
-messageByIdRouter.patch("/:messageId", todo);
-messageByIdRouter.delete("/:messageId", todo);
-messageByIdRouter.get("/:messageId/replies", todo);
-
-export { conversationMessageRouter, messageByIdRouter };
+export { conversationMessageRouter };
+export const messageRouter = conversationMessageRouter as Router;
